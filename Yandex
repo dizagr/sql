@@ -1,0 +1,30 @@
+select 
+  (
+    next_lesson_datetime - lesson_datetime
+  ) as delta_seconds, 
+  lesson_datetime, 
+  lesson_index_test.lesson_id, 
+  profession_name, 
+  next_lesson_datetime, 
+  user_id 
+from 
+  (
+    select 
+      lag(date_created, 1) over(
+        partition by user_id 
+        order by 
+          date_created
+      ) AS lesson_datetime, 
+      lesson_id, 
+      date_created as next_lesson_datetime, 
+      user_id 
+    from 
+      finished_lesson_test
+  ) as table1, 
+  lesson_index_test 
+where 
+  table1.lesson_id = lesson_index_test.lesson_id 
+  and profession_name = 'data-analyst' 
+  and lesson_datetime between '2020-04-01' 
+  and '2020-04-30'
+  and (next_lesson_datetime - lesson_datetime)<='0:00:5'
