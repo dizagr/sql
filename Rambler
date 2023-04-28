@@ -1,0 +1,18 @@
+SELECT 
+  month, 
+  AVG(value) 
+FROM 
+  (
+    SELECT 
+      MONTH(date), 
+      value 
+    FROM 
+      db_metrika.kpi_metrics
+  ) as DF1 
+WHERE 
+  project = ‘WMJ.ru’ 
+  AND metrics = ‘Pageviews’ 
+  AND month BETWEEN 7 
+  AND 9
+GROUP BY 
+  month ASC
