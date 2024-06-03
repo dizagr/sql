@@ -100,7 +100,7 @@ ORDER BY
   month;
 
 5. По каждому предмету определить день недели, в который по этому предмету больше всего уроков + вывести это количество уроков.
-select subject, EXTRACT(DOW FROM scheduled_time)+1 AS dow, count(scheduled_time) as dow_lessons From Lessons
+select subject, EXTRACT(DOW FROM scheduled_time)+1 AS dow, count(scheduled_time) OVER (PARTITION BY subject ORDER BY) as dow_lessons From Lessons
 Group by subject, EXTRACT(DOW FROM scheduled_time)+1
 
 6. Если в ноябре прирост составит 300 учеников, сколько нам нужно нанять преподавателей, чтобы сохранить на прежнем уровне (как в октябре) утилизацию преподавателей?
