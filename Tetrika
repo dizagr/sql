@@ -1,46 +1,106 @@
 Продакт-менеджер Василий попросил вас проанализировать завершенные уроки и ответить на следующие вопросы:
 1. Какое число наших пользователей активно преподаёт или учится (в разрезе по роли)? Как меняются эти показатели из месяца в месяц?
 
+SELECT
+  Users.role,
+  COUNT(Lessons.id) AS count_lessons,
+  EXTRACT(
+    MONTH
+    FROM
+      Lessons.scheduled_time
+  ) AS month_lesson
+FROM
+  Lessons
+  LEFT JOIN Users AS pupil ON Lessons.pupil_id = pupil.id
+  LEFT JOIN Users AS tutor ON Lessons.tutor_id = tutor.id
+WHERE
+  Lessons.state = 'finished'
+GROUP BY
+  Users.role,
+  EXTRACT(
+    MONTH
+    FROM
+      Lessons.scheduled_time
+  )
+HAVING
+  COUNT(Lessons.id) >= 10
+ORDER BY
+  Users.role,
+  month_lesson;
+
 2. Сколько у нас преподавателей и учеников, которые не участвовали ещё ни в одном уроке? (прогул и отмена считается как участие)
 
+SELECT 
+    Users.role, 
+    COUNT(*) AS empty_lessons
+FROM 
+    Lessons
+LEFT JOIN 
+    Users AS pupil ON Lessons.pupil_id = pupil.id
+LEFT JOIN 
+    Users AS tutor ON Lessons.tutor_id = tutor.id
+WHERE 
+    Lessons.state IS NULL
+GROUP BY 
+    Users.role;
+
 3. Сколько у каждого из преподавателя в среднем занятий в неделю (по месяцам)?
+
 SELECT 
   tutor_id, 
-  AVG(lessons_in_week) as avg_lessons_in_week, 
+  AVG(lessons_in_week) AS avg_lessons_in_week, 
   month 
 FROM 
   (
     SELECT 
       tutor_id, 
-      COUNT(week) as lessons_in_week, 
+      COUNT(week) AS lessons_in_week, 
       month 
     FROM 
       (
         SELECT 
           tutor_id, 
-          extract(
-            week 
-            from 
-              scheduled_time
-          ) as week, 
-          extract(
-            month 
-            from 
-              scheduled_time
-          ) as month 
+          EXTRACT(WEEK FROM scheduled_time) AS week, 
+          EXTRACT(MONTH FROM scheduled_time) AS month 
         FROM 
           Lessons
       ) AS tutor_week_month 
-    Group by 
+    GROUP BY 
       tutor_id, 
-      week
-  ) as tutor_lessons_in_week 
-Group by 
+      week, 
+      month
+  ) AS tutor_lessons_in_week 
+GROUP BY 
   tutor_id, 
   month;
 
 4. Сколько уроков по каждому из предметов в месяц не состоялись по причине прогула учителя/ученика (по отдельности каждого + общее кол-во)?
 
+SELECT
+  subject,
+  month,
+  tutor_absence,
+  pupil_absence,
+  (tutor_absence + pupil_absence) AS total
+FROM
+  (
+    SELECT
+      subject,
+      EXTRACT(MONTH FROM scheduled_time) AS month,
+      SUM(CASE WHEN state = 'tutor_no_show' THEN 1 ELSE 0 END) AS tutor_absence,
+      SUM(CASE WHEN state = 'pupil_no_show' THEN 1 ELSE 0 END) AS pupil_absence
+    FROM
+      Lessons
+    GROUP BY
+      subject,
+      EXTRACT(MONTH FROM scheduled_time)
+  ) AS subquery
+ORDER BY
+  subject,
+  month;
+
 5. По каждому предмету определить день недели, в который по этому предмету больше всего уроков + вывести это количество уроков.
+select subject, EXTRACT(DOW FROM scheduled_time)+1 AS dow, count(scheduled_time) as dow_lessons From Lessons
+Group by subject, EXTRACT(DOW FROM scheduled_time)+1
 
 6. Если в ноябре прирост составит 300 учеников, сколько нам нужно нанять преподавателей, чтобы сохранить на прежнем уровне (как в октябре) утилизацию преподавателей?
